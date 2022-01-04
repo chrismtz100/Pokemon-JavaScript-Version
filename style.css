@@ -1,0 +1,204 @@
+/* Main Content */
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+h1 {
+  text-align: center;
+  /* padding: 30px; */
+  font-family: 'VT323';
+  font-size: 130px;
+  color: #fffafa;
+  
+}
+body {
+  background-image: url(https://cdnb.artstation.com/p/assets/images/images/011/187/101/large/shen-yh-06052.jpg?1528285487);
+  background-color: #cccccc;
+  background-attachment: fixed;
+  background-size: cover;
+}
+#pokemon-data {
+  text-align: center;
+}
+
+.container{
+  text-align: center;
+  text-transform: uppercase;
+  font-family: 'VT323';
+  font-size: 20px;
+  color: #fffafa;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+
+}
+
+/*  Search Bar */
+input[type=text] {
+  width: 150px;
+  padding: 9px;
+
+}
+input[type=text],
+#submit{
+  vertical-align: middle;
+  
+}
+.search-bar {
+  padding-bottom: 30px;
+  
+}
+
+
+/* Button styling */
+#submit {
+  font-family: 'VT323';
+  font-size: 30px;
+  float: inline;
+  border-radius: 10px;
+  background-color: #f4f3ee;
+}
+#submit:hover {
+  background-color: #fff1e6;
+}
+button {
+  margin: 30px;
+  padding: 9px;
+  border-radius: 10px;
+ }
+
+ .kanto {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #2a8000;
+  border-color: green;
+  color:#fffafa;
+}
+.kanto:hover{
+  background-color: #a8e4a0;
+  
+}
+
+.johto {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #FFD700;
+  border-color: yellow;
+  color:#fffafa;
+}
+.johto:hover{
+  background-color: #ffff66;
+}
+
+.hoenn {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #0466c8;
+  border-color: rgb(41, 80, 165);
+  color:#fffafa;
+}
+.hoenn:hover{
+  background-color: #77b5fe;
+}
+
+.sinnoh {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #fffafa;
+  border-color: whitesmoke;
+}
+.sinnoh:hover{
+  background-color: #fff5ee;
+}
+
+.unova {
+  font-family: 'VT323';
+  font-size: 30px;
+  color:whitesmoke;
+  background-color:#000000 ;
+  border-color: rgb(75, 74, 74);
+
+}
+.unova:hover{
+  background-color: #242124;
+}
+
+.kalos {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #e5383b;
+  border-color: lightcoral;
+  color:#fffafa;
+}
+.kalos:hover{
+  background-color: #f08080;
+}
+
+.alola {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #7d53de;
+  border-color: rgba(133, 78, 184, 0.87);
+  color:#fffafa;
+}
+.alola:hover{
+  background-color: #9370db;
+}
+
+.galar {
+  font-family: 'VT323';
+  font-size: 30px;
+  background-color: #4cc9f0;
+  border-color: lightblue;
+  color:#fffafa;
+}
+.galar:hover{
+  background-color: #9bddff;
+  
+}
+
+
+
+/* IPad Media */
+@media only screen and (max-width: 768px){
+  h1 {
+    font-size: 50px;
+  }
+  .container {
+   font-size: 15px;
+  }
+  button {
+    margin: 15px;
+  }
+  input[type=text] {
+    padding: 7px;
+  
+  }
+  #submit{
+    font-size: 20px;
+  }
+  .kanto{
+    font-size: 20px;
+  }
+  .johto{
+    font-size: 20px;
+  }
+  .hoenn{
+    font-size: 20px;
+  }
+  .sinnoh{
+    font-size: 20px;
+  }
+  .unova{
+    font-size: 20px;
+  }
+  .kalos{
+    font-size: 20px;
+  }
+  .alola{
+    font-size: 20px;
+  }
+  .galar{
+    font-size: 20px;
+  }
+}

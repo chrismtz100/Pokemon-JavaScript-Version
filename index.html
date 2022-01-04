@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script defer src="./script.js"></script>
+  <link rel="shortcut icon" href="#">
+
+  <title>Pokemon: JavaScript Version</title>
+</head>
+
+<body>
+  <h1>   
+    Pokemon
+    <br/>
+    JS Version
+  </h1>
+
+  <div id="buttons">
+    <form id="pokemon-data">
+      <div class="search-bar">
+        <input type="text" id="search" placeholder="Search Pokemon" />
+        <input type="submit" id="submit" value="Submit" />
+      </div>
+      <button class="kanto" onclick="Gen1Button()">Generate P1 Team</button>
+      <button class="johto" onclick="Gen2Button()">Generate P2 Team</button>
+      <button class="hoenn" onclick="Gen3Button()">Battle</button>
+      <button class="sinnoh" onclick="Gen4Button()">Sinnoh</button>
+      <button class="unova" onclick="Gen5Button()">Unova</button>
+      <button class="kalos" onclick="Gen6Button()">Kalos</button>
+      <button class="alola" onclick="Gen7Button()">Alola</button>
+      <button class="galar" onclick="Gen8Button()">Galar</button>
+    </form>
+  </div>
+  <ol class="pokemon-info">
+    <div class="container"></div>
+  </ol>
+
+  <ol class="pokemon-battle">
+    <div class="battle"></div>
+  </ol>
+</body>
+
+</html>

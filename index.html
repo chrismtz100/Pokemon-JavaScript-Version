@@ -83,9 +83,21 @@
       <div class="team-icons" id="p1-team-icons"></div>
     </div>
 
-    <!-- Battle message box (current action) -->
-    <div id="battle-message-box">
-      <p id="battle-log-text">...</p>
+    <!-- Battle controls row: message box + speed + exit -->
+    <div id="battle-controls-row">
+      <div id="battle-message-box">
+        <p id="battle-log-text">...</p>
+      </div>
+      <div id="battle-controls">
+        <div id="speed-controls">
+          <span class="speed-label">Speed</span>
+          <button class="speed-btn" data-speed="0.5" onclick="setBattleSpeed(0.5)">0.5x</button>
+          <button class="speed-btn active" data-speed="1.0" onclick="setBattleSpeed(1.0)">1.0x</button>
+          <button class="speed-btn" data-speed="2.0" onclick="setBattleSpeed(2.0)">2.0x</button>
+          <button class="speed-btn" data-speed="3.0" onclick="setBattleSpeed(3.0)">3.0x</button>
+        </div>
+        <button id="btn-exit-battle" onclick="exitBattle()">&#x2715; Exit</button>
+      </div>
     </div>
 
     <!-- Move selection: 4 buttons in 2x2 grid -->

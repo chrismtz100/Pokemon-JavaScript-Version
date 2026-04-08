@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where npx:*)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Bash(where python:*)",
+      "Bash(where python3:*)",
+      "Bash(gh pr create --title 'Complete Pokemon battle simulator with authentic Gen 5 battle system' --body ':*)",
+      "Bash(where gh:*)"
+    ]
+  }
+}

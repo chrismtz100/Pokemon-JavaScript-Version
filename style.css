@@ -367,20 +367,88 @@ button {
 }
 
 /* ============================================================
-   BATTLE SCREEN — message box
+   BATTLE SCREEN — message box + controls row
 ============================================================ */
+#battle-controls-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 8px 0;
+}
+
 #battle-message-box {
+  flex: 1;
   background: #0d0d1a;
   border: 3px solid #fffafa;
   border-radius: 8px;
   padding: 12px 20px;
-  margin: 8px 0;
   min-height: 52px;
   font-size: 24px;
 }
 
 #battle-message-box p {
   margin: 0;
+}
+
+#battle-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+#speed-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.speed-label {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: #aaa;
+  margin-right: 2px;
+}
+
+.speed-btn {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 2px solid #555;
+  background: #1a1a2e;
+  color: #aaa;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.speed-btn:hover {
+  background: #2e2e4e;
+  color: #fffafa;
+}
+
+.speed-btn.active {
+  border-color: #fffafa;
+  color: #fffafa;
+  background: #2e2e50;
+}
+
+#btn-exit-battle {
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 2px solid #c03028;
+  background: #2a0000;
+  color: #f08080;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+#btn-exit-battle:hover {
+  background: #c03028;
+  color: #fffafa;
 }
 
 /* ============================================================

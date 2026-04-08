@@ -159,7 +159,331 @@ button {
 
 
 
-/* IPad Media */
+/* ============================================================
+   SETUP SCREEN — team preview cards
+============================================================ */
+#team-preview {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px 10px;
+}
+
+.team-preview-section {
+  text-align: center;
+}
+
+.team-preview-section h3 {
+  font-family: 'VT323';
+  font-size: 28px;
+  color: #fffafa;
+  margin-bottom: 8px;
+}
+
+.team-card {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 8px;
+  margin: 4px;
+  width: 110px;
+}
+
+.card-name {
+  font-family: 'VT323';
+  font-size: 15px;
+  color: #fffafa;
+  word-break: break-all;
+}
+
+.card-hp {
+  font-family: 'VT323';
+  font-size: 14px;
+  color: #ccc;
+}
+
+.card-types {
+  margin: 4px 0;
+}
+
+.loading-message {
+  font-family: 'VT323';
+  font-size: 22px;
+  color: #fffafa;
+  padding: 20px;
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ============================================================
+   TYPE BADGES (team preview)
+============================================================ */
+.type-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'VT323';
+  font-size: 13px;
+  color: #fff;
+  margin: 1px;
+  text-transform: uppercase;
+}
+
+.type-badge.type-normal,   .type-badge.type-normal   { background: #A8A878; }
+.type-badge.type-fire      { background: #F08030; }
+.type-badge.type-water     { background: #6890F0; }
+.type-badge.type-electric  { background: #F8D030; color: #333; }
+.type-badge.type-grass     { background: #78C850; }
+.type-badge.type-ice       { background: #98D8D8; color: #333; }
+.type-badge.type-fighting  { background: #C03028; }
+.type-badge.type-poison    { background: #A040A0; }
+.type-badge.type-ground    { background: #E0C068; color: #333; }
+.type-badge.type-flying    { background: #A890F0; }
+.type-badge.type-psychic   { background: #F85888; }
+.type-badge.type-bug       { background: #A8B820; }
+.type-badge.type-rock      { background: #B8A038; }
+.type-badge.type-ghost     { background: #705898; }
+.type-badge.type-dragon    { background: #7038F8; }
+.type-badge.type-dark      { background: #705848; }
+.type-badge.type-steel     { background: #B8B8D0; color: #333; }
+.type-badge.type-fairy     { background: #EE99AC; color: #333; }
+
+/* ============================================================
+   BATTLE SCREEN — layout
+============================================================ */
+#battle-screen {
+  font-family: 'VT323', monospace;
+  max-width: 860px;
+  margin: 20px auto;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 3px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  color: #fffafa;
+}
+
+/* Status rows (name + HP bar + team icons) */
+.battle-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+.battle-info-enemy {
+  flex-direction: row-reverse; /* icons on left, stats on right */
+}
+
+.pokemon-status-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.status-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.poke-name {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.poke-level {
+  font-size: 18px;
+  color: #ccc;
+}
+
+/* HP bar */
+.hp-bar-container {
+  background: #333;
+  border-radius: 4px;
+  height: 14px;
+  width: 220px;
+  overflow: hidden;
+}
+
+.hp-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.hp-green  { background: #78c850; }
+.hp-yellow { background: #f8d030; }
+.hp-red    { background: #f08030; }
+
+.hp-text {
+  font-size: 18px;
+  color: #ddd;
+}
+
+/* Team icons (6 small sprites) */
+.team-icons {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.team-icon {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+}
+
+.team-icon.fainted {
+  filter: grayscale(100%) opacity(35%);
+}
+
+/* Battle arena (sprites) */
+.battle-arena {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 230px;
+  padding: 0 40px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+.enemy-sprite-box img,
+.player-sprite-box img {
+  width: 180px;
+  image-rendering: pixelated;
+}
+
+/* ============================================================
+   BATTLE SCREEN — message box
+============================================================ */
+#battle-message-box {
+  background: #0d0d1a;
+  border: 3px solid #fffafa;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin: 8px 0;
+  min-height: 52px;
+  font-size: 24px;
+}
+
+#battle-message-box p {
+  margin: 0;
+}
+
+/* ============================================================
+   BATTLE SCREEN — move buttons (2x2 grid)
+============================================================ */
+#move-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.move-btn {
+  font-family: 'VT323', monospace;
+  font-size: 19px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: 3px solid #555;
+  cursor: pointer;
+  background: #1a1a2e;
+  color: #fffafa;
+  text-transform: capitalize;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: left;
+}
+
+.move-btn:hover:not(:disabled) {
+  background: #2e2e4e;
+}
+
+.move-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Type-colored borders on move buttons */
+.move-btn.type-normal   { border-color: #A8A878; }
+.move-btn.type-fire     { border-color: #F08030; }
+.move-btn.type-water    { border-color: #6890F0; }
+.move-btn.type-electric { border-color: #F8D030; }
+.move-btn.type-grass    { border-color: #78C850; }
+.move-btn.type-ice      { border-color: #98D8D8; }
+.move-btn.type-fighting { border-color: #C03028; }
+.move-btn.type-poison   { border-color: #A040A0; }
+.move-btn.type-ground   { border-color: #E0C068; }
+.move-btn.type-flying   { border-color: #A890F0; }
+.move-btn.type-psychic  { border-color: #F85888; }
+.move-btn.type-bug      { border-color: #A8B820; }
+.move-btn.type-rock     { border-color: #B8A038; }
+.move-btn.type-ghost    { border-color: #705898; }
+.move-btn.type-dragon   { border-color: #7038F8; }
+.move-btn.type-dark     { border-color: #705848; }
+.move-btn.type-steel    { border-color: #B8B8D0; }
+.move-btn.type-fairy    { border-color: #EE99AC; }
+
+/* ============================================================
+   BATTLE SCREEN — scrollable battle log history
+============================================================ */
+#battle-log-scroll {
+  max-height: 110px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-top: 6px;
+}
+
+#battle-log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  color: #aaa;
+}
+
+#battle-log-list li:first-child {
+  color: #fffafa;
+  font-size: 18px;
+}
+
+/* ============================================================
+   PLAY AGAIN BUTTON
+============================================================ */
+#btn-play-again {
+  font-family: 'VT323', monospace;
+  font-size: 30px;
+  padding: 10px 40px;
+  background: #2a8000;
+  color: #fffafa;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin: 14px auto 4px;
+  display: block;
+}
+
+#btn-play-again:hover {
+  background: #3aaa00;
+}
+
+/* ============================================================
+   IPad Media
+============================================================ */
 @media only screen and (max-width: 768px){
   h1 {
     font-size: 50px;

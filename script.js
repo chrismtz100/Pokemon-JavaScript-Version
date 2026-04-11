@@ -1,9 +1,94 @@
 // ============================================================
 // DOM REFERENCES
 // ============================================================
-const teamPreviewContainer = document.querySelector("#team-preview");
-const searchForm           = document.querySelector("#pokemon-data");
-const searchText           = document.querySelector("#search");
+const searchForm = document.querySelector("#pokemon-data");
+const searchText = document.querySelector("#search");
+
+// Tracks what is currently being dragged (DataTransfer can only hold strings)
+const dragState = {
+  type: null,        // "search" | "reorder"
+  pokemonData: null, // raw PokeAPI response for search drags
+  player: null,      // source player for reorder drags
+  fromIndex: null    // source index for reorder drags
+};
+
+// ============================================================
+// TOUCH DRAG-AND-DROP (mobile polyfill)
+// Maps touchstart/touchmove/touchend to the same drag logic
+// used by the HTML5 mouse Drag & Drop API.
+// ============================================================
+function initTouchDrag(el, onDragStart) {
+  let ghost = null;
+
+  el.addEventListener("touchstart", (e) => {
+    onDragStart();
+    const touch = e.touches[0];
+
+    // Floating ghost that follows the finger
+    ghost = el.cloneNode(true);
+    ghost.style.cssText = `
+      position: fixed;
+      pointer-events: none;
+      opacity: 0.75;
+      z-index: 9999;
+      width: ${el.offsetWidth}px;
+      left: ${touch.clientX - el.offsetWidth  / 2}px;
+      top:  ${touch.clientY - el.offsetHeight / 2}px;
+      margin: 0;
+    `;
+    document.body.appendChild(ghost);
+    el.classList.add("dragging");
+  }, { passive: true });
+
+  el.addEventListener("touchmove", (e) => {
+    e.preventDefault(); // stop page scroll while dragging
+    if (!ghost) return;
+    const touch = e.touches[0];
+    ghost.style.left = touch.clientX - ghost.offsetWidth  / 2 + "px";
+    ghost.style.top  = touch.clientY - ghost.offsetHeight / 2 + "px";
+  }, { passive: false });
+
+  el.addEventListener("touchend", (e) => {
+    el.classList.remove("dragging");
+    if (ghost) { ghost.remove(); ghost = null; }
+
+    const touch = e.changedTouches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!target) return;
+
+    // Cards have data-index; search-result cards do not
+    const targetCard = target.closest(".team-card[data-index]");
+    const targetZone = target.closest(".team-zone");
+
+    if (dragState.type === "reorder") {
+      if (targetCard && targetCard !== el) {
+        // Drop on another team card → insert before it
+        const toIndex = parseInt(targetCard.dataset.index);
+        if (dragState.fromIndex !== toIndex) {
+          const moved    = dragState.player.team.splice(dragState.fromIndex, 1)[0];
+          const insertAt = dragState.fromIndex < toIndex ? toIndex - 1 : toIndex;
+          dragState.player.team.splice(insertAt, 0, moved);
+          renderTeamPreview(dragState.player);
+          updateBattleReadiness();
+        }
+      } else if (targetZone && targetZone.id === `team-zone-${dragState.player === player1 ? "p1" : "p2"}`) {
+        // Drop on zone background → move to end
+        const moved = dragState.player.team.splice(dragState.fromIndex, 1)[0];
+        dragState.player.team.push(moved);
+        renderTeamPreview(dragState.player);
+        updateBattleReadiness();
+      }
+
+    } else if (dragState.type === "search") {
+      // Resolve which player owns the drop target
+      let zoneEl = targetZone;
+      if (!zoneEl && targetCard) zoneEl = targetCard.closest(".team-zone");
+      if (!zoneEl) return;
+      const zonePlayer = zoneEl.id === "team-zone-p1" ? player1 : player2;
+      dropSearchPokemon(zonePlayer);
+    }
+  });
+}
 
 // ============================================================
 // GAME STATE
@@ -155,13 +240,11 @@ async function generateRandomTeam(player) {
 
   setButtonsEnabled(false);
 
-  // Show loading state in team preview
-  const previewContainer = document.getElementById("team-preview");
-  const loadingMsg = document.createElement("div");
-  loadingMsg.id = `loading-${player.side}`;
-  loadingMsg.className = "loading-message";
-  loadingMsg.textContent = `Generating ${player.name}'s team...`;
-  previewContainer.appendChild(loadingMsg);
+  // Show loading state inside the player's team slot container
+  const slotsId = player === player1 ? "team-slots-p1" : "team-slots-p2";
+  const slotsEl = document.getElementById(slotsId);
+  if (slotsEl) slotsEl.innerHTML = `<div class="loading-message">Generating ${player.name}'s team...</div>`;
+  updateTeamCount(player);
 
   const fetchPromises = [];
   for (let i = 0; i < 6; i++) {
@@ -170,10 +253,6 @@ async function generateRandomTeam(player) {
   }
 
   await Promise.all(fetchPromises);
-
-  // Remove loading message
-  const loadingEl = document.getElementById(`loading-${player.side}`);
-  if (loadingEl) loadingEl.remove();
 
   renderTeamPreview(player);
   setButtonsEnabled(true);
@@ -206,14 +285,14 @@ async function addPokemonToTeam(pokemonData, player) {
   newPokemon.sprite     = pokemonData.sprites.front_default;
   newPokemon.types      = pokemonData.types.map(t => t.type.name);
 
-  const s = pokemonData.stats;
+  const getStat = name => pokemonData.stats.find(s => s.stat.name === name)?.base_stat ?? 0;
   newPokemon.stats = {
-    hp:        s[0].base_stat,
-    attack:    s[1].base_stat,
-    defense:   s[2].base_stat,
-    spAttack:  s[3].base_stat,
-    spDefense: s[4].base_stat,
-    speed:     s[5].base_stat
+    hp:        getStat("hp"),
+    attack:    getStat("attack"),
+    defense:   getStat("defense"),
+    spAttack:  getStat("special-attack"),
+    spDefense: getStat("special-defense"),
+    speed:     getStat("speed")
   };
   newPokemon.currentHp = newPokemon.stats.hp;
 
@@ -272,34 +351,93 @@ async function addPokemonToTeam(pokemonData, player) {
 // TEAM PREVIEW (setup screen)
 // ============================================================
 function renderTeamPreview(player) {
-  const container = document.getElementById("team-preview");
+  const slotsId = player === player1 ? "team-slots-p1" : "team-slots-p2";
+  const container = document.getElementById(slotsId);
+  if (!container) return;
+  container.innerHTML = "";
 
-  // Remove any existing section for this player
-  const existing = container.querySelector(`[data-side="${player.side}"]`);
-  if (existing) existing.remove();
-
-  const section = document.createElement("div");
-  section.dataset.side = player.side;
-  section.className = "team-preview-section";
-
-  const heading = document.createElement("h3");
-  heading.textContent = `${player.name}'s Team`;
-  section.appendChild(heading);
-
-  for (const poke of player.team) {
+  player.team.forEach((poke, index) => {
     const card = document.createElement("div");
     card.className = "team-card";
+    card.draggable = true;
+    card.dataset.index = index;
+
     const typeLabels = poke.types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join(" ");
     card.innerHTML = `
-      <img src="${poke.sprite}" width="80" alt="${poke.name}" />
-      <div class="card-name">${poke.name.toUpperCase()}</div>
-      <div class="card-types">${typeLabels}</div>
-      <div class="card-hp">HP: ${poke.stats.hp}</div>
+      <span class="slot-number">${index + 1}</span>
+      <img src="${poke.sprite}" width="50" alt="${poke.name}" />
+      <div class="card-info">
+        <div class="card-name">${poke.name.toUpperCase()}</div>
+        <div class="card-types">${typeLabels}</div>
+        <div class="card-hp">HP: ${poke.stats.hp}</div>
+      </div>
+      <button class="remove-btn" title="Remove">&#x2715;</button>
     `;
-    section.appendChild(card);
-  }
 
-  container.appendChild(section);
+    // Remove this Pokemon from the team
+    card.querySelector(".remove-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      player.team.splice(index, 1);
+      renderTeamPreview(player);
+      updateBattleReadiness();
+    });
+
+    // Drag start — reorder within this team
+    card.addEventListener("dragstart", (e) => {
+      dragState.type = "reorder";
+      dragState.player = player;
+      dragState.fromIndex = index;
+      e.dataTransfer.effectAllowed = "move";
+      setTimeout(() => card.classList.add("dragging"), 0);
+    });
+
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
+
+    // Touch drag support for mobile
+    initTouchDrag(card, () => {
+      dragState.type      = "reorder";
+      dragState.player    = player;
+      dragState.fromIndex = index;
+    });
+
+    // Accept drops on individual cards (insert before this card)
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.add("drag-over-card");
+    });
+
+    card.addEventListener("dragleave", () => card.classList.remove("drag-over-card"));
+
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.remove("drag-over-card");
+      const toIndex = parseInt(card.dataset.index);
+
+      if (dragState.type === "reorder" && dragState.player === player) {
+        if (dragState.fromIndex !== toIndex) {
+          const moved = player.team.splice(dragState.fromIndex, 1)[0];
+          const insertAt = dragState.fromIndex < toIndex ? toIndex - 1 : toIndex;
+          player.team.splice(insertAt, 0, moved);
+          renderTeamPreview(player);
+          updateBattleReadiness();
+        }
+      } else if (dragState.type === "search") {
+        dropSearchPokemon(player);
+      }
+    });
+
+    container.appendChild(card);
+  });
+
+  updateTeamCount(player);
+}
+
+function updateTeamCount(player) {
+  const id = player === player1 ? "count-p1" : "count-p2";
+  const el = document.getElementById(id);
+  if (el) el.textContent = `(${player.team.length}/6)`;
 }
 
 // ============================================================
@@ -333,14 +471,43 @@ async function fetchSinglePokemonForDisplay(pokemonId) {
 }
 
 function showSearchResult(pokemonData) {
-  const container = document.getElementById("team-preview");
+  const container = document.getElementById("search-result");
+  container.innerHTML = "";
+
   const card = document.createElement("div");
-  card.className = "team-card";
+  card.className = "team-card search-result-card";
+  card.draggable = true;
   card.innerHTML = `
     <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonData.id}.png" width="80" />
     <div class="card-name">${pokemonData.id}. ${pokemonData.name.toUpperCase()}</div>
+    <div class="drag-hint">Drag (or press &amp; hold) onto a team &#x2193;</div>
   `;
+
+  card.addEventListener("dragstart", (e) => {
+    dragState.type = "search";
+    dragState.pokemonData = pokemonData;
+    e.dataTransfer.effectAllowed = "copy";
+  });
+
+  // Touch drag support for mobile
+  initTouchDrag(card, () => {
+    dragState.type        = "search";
+    dragState.pokemonData = pokemonData;
+  });
+
   container.appendChild(card);
+}
+
+async function dropSearchPokemon(player) {
+  if (player.team.length >= 6) {
+    alert(`${player.name}'s team is full! Remove a Pokemon first.`);
+    return;
+  }
+  setButtonsEnabled(false);
+  await addPokemonToTeam(dragState.pokemonData, player);
+  setButtonsEnabled(true);
+  renderTeamPreview(player);
+  updateBattleReadiness();
 }
 
 function deepSearch(obj, searchQuery) {
@@ -402,6 +569,10 @@ function startBattle() {
   document.getElementById("setup-screen").style.display  = "none";
   document.getElementById("battle-screen").style.display = "block";
 
+  // Label P2 as "CPU" in 1-player mode, "Player 2" in 2-player mode
+  const p2LabelEl = document.getElementById("p2-label");
+  if (p2LabelEl) p2LabelEl.textContent = gameState.mode === "1player" ? "CPU" : "PLAYER 2";
+
   renderTeamIcons(player1);
   renderTeamIcons(player2);
   updateActivePokemonSprite(player1);
@@ -439,7 +610,11 @@ function resetGame() {
   document.getElementById("battle-screen").style.display = "none";
   document.getElementById("setup-screen").style.display  = "block";
   document.getElementById("btn-play-again").style.display = "none";
-  document.getElementById("team-preview").innerHTML       = "";
+  document.getElementById("team-slots-p1").innerHTML      = "";
+  document.getElementById("team-slots-p2").innerHTML      = "";
+  document.getElementById("search-result").innerHTML      = "";
+  updateTeamCount(player1);
+  updateTeamCount(player2);
   document.getElementById("battle-log-list").innerHTML    = "";
   document.getElementById("battle-log-text").textContent  = "";
 
@@ -457,9 +632,8 @@ function renderTeamIcons(player) {
   container.innerHTML = "";
 
   for (const poke of player.team) {
-    const iconUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-viii/icons/${poke.id}.png`;
     const img = document.createElement("img");
-    img.src       = iconUrl;
+    img.src       = poke.sprite;   // same front_default sprite as the Pokémon selection panel
     img.className = "team-icon" + (poke.isKO ? " fainted" : "");
     img.title     = poke.name;
     container.appendChild(img);
@@ -554,11 +728,12 @@ function appendBattleLog(message) {
 }
 
 function showBattlePrompt() {
+  closeSubPanel();
+  setMenuEnabled(true);
   const activePoke = player1.team[player1.activeIndex];
   if (activePoke) {
     appendBattleLog(`What will ${activePoke.name.toUpperCase()} do?`);
   }
-  updateMoveButtons(player1);
 }
 
 function disableMoveButtons() {
@@ -566,11 +741,148 @@ function disableMoveButtons() {
     const btn = document.getElementById(`move-${i}`);
     if (btn) btn.disabled = true;
   }
+  setMenuEnabled(false);
 }
 
 function showPlayAgainButton() {
   const btn = document.getElementById("btn-play-again");
   if (btn) btn.style.display = "block";
+}
+
+// ============================================================
+// BATTLE MENU — sub-panel control
+// ============================================================
+function setMenuEnabled(enabled) {
+  ["btn-fight", "btn-pokemon"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = !enabled;
+  });
+}
+
+function showSubPanel(panel) {
+  const movePanel    = document.getElementById("move-panel");
+  const pokemonPanel = document.getElementById("pokemon-panel");
+  const speedPanel   = document.getElementById("speed-panel");
+  if (movePanel)    movePanel.style.display    = panel === "fight"   ? "grid"  : "none";
+  if (pokemonPanel) pokemonPanel.style.display = panel === "pokemon" ? "block" : "none";
+  if (speedPanel)   speedPanel.style.display   = panel === "speed"   ? "flex"  : "none";
+}
+
+function closeSubPanel() {
+  ["move-panel", "pokemon-panel", "speed-panel"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+}
+
+function openFightMenu() {
+  if (gameState.isAnimating) return;
+  if (gameState.phase !== "battle") return;
+  updateMoveButtons(player1);
+  showSubPanel("fight");
+}
+
+function openSpeedMenu() {
+  // Speed can be changed at any time
+  showSubPanel("speed");
+}
+
+function openPokemonMenu() {
+  if (gameState.isAnimating) return;
+  if (gameState.phase !== "battle") return;
+
+  const container = document.getElementById("party-slots");
+  container.innerHTML = "";
+
+  player1.team.forEach((poke, index) => {
+    const isActive = index === player1.activeIndex;
+    const isKO     = poke.isKO;
+
+    const btn = document.createElement("button");
+    btn.className = "party-slot-btn"
+      + (isActive ? " is-active" : "")
+      + (isKO     ? " is-ko"     : "");
+    btn.disabled = isActive || isKO;
+
+    const statusLabel = isActive
+      ? `<span class="party-badge active-badge">ACTIVE</span>`
+      : isKO
+        ? `<span class="party-badge ko-badge">KO</span>`
+        : "";
+
+    btn.innerHTML = `
+      <img src="${poke.sprite}" width="48" alt="${poke.name}" />
+      <div class="party-info">
+        <div class="party-name">${poke.name.toUpperCase()}</div>
+        <div class="party-hp">${poke.currentHp}/${poke.stats.hp} HP</div>
+      </div>
+      ${statusLabel}
+    `;
+
+    if (!isActive && !isKO) {
+      btn.addEventListener("click", () => playerSelectSwitch(index));
+    }
+
+    container.appendChild(btn);
+  });
+
+  showSubPanel("pokemon");
+}
+
+// ============================================================
+// VOLUNTARY SWITCH — counts as the player's action for the turn
+// ============================================================
+function playerSelectSwitch(index) {
+  if (gameState.isAnimating) return;
+  if (gameState.phase !== "battle") return;
+  if (index === player1.activeIndex) return;
+  if (player1.team[index].isKO) return;
+
+  closeSubPanel();
+
+  const cpuMove = cpuSelectMove(player2.team[player2.activeIndex]);
+  executeTurnWithSwitch(index, cpuMove);
+}
+
+async function executeTurnWithSwitch(switchIndex, cpuMove) {
+  gameState.isAnimating = true;
+  setMenuEnabled(false);
+
+  const outPoke = player1.team[player1.activeIndex];
+  const inPoke  = player1.team[switchIndex];
+
+  appendBattleLog(`${player1.name} withdrew ${outPoke.name.toUpperCase()}!`);
+  await pause(1200);
+
+  player1.activeIndex = switchIndex;
+  updateActivePokemonSprite(player1);
+  updateHpBar(player1);
+  renderTeamIcons(player1);
+
+  handleSwitchIn(player1, inPoke);  // entry hazard hook
+
+  appendBattleLog(`Go, ${inPoke.name.toUpperCase()}!`);
+  await pause(1200);
+
+  // CPU attacks the newly switched-in Pokemon
+  const poke2 = player2.team[player2.activeIndex];
+  await resolveAttack(poke2, cpuMove, inPoke, player2, player1);
+
+  await handleFaintedPokemon(player1);
+  await handleFaintedPokemon(player2);
+
+  if (isTeamDefeated(player1)) { endBattle(player2); return; }
+  if (isTeamDefeated(player2)) { endBattle(player1); return; }
+
+  gameState.isAnimating = false;
+  gameState.selectedMove = { p1: null, p2: null };
+  showBattlePrompt();
+}
+
+// Entry hazard hook — apply switch-in effects here (e.g. Stealth Rock, Toxic Spikes).
+// Currently a no-op stub; add hazard tracking and damage logic here when implemented.
+function handleSwitchIn(_player, _pokemon) {
+  // example: if (_player.hazards.toxicSpikes) { apply poison to _pokemon }
 }
 
 // ============================================================
@@ -673,6 +985,37 @@ async function executeTurn(p1Move, p2Move) {
   showBattlePrompt();
 }
 
+// Plays a lunge or wiggle animation on the attacker's sprite.
+// Animation duration is scaled by battleSpeed so it matches the rest of the turn pacing.
+function playAttackAnimation(attackingPlayer, move) {
+  const spriteId = attackingPlayer === player1 ? "p1-sprite" : "p2-sprite";
+  const spriteEl = document.getElementById(spriteId);
+  if (!spriteEl) return Promise.resolve();
+
+  const isDamaging = (move.category === "physical" || move.category === "special") && move.power > 0;
+  let animClass, baseDurationMs;
+
+  if (isDamaging) {
+    animClass      = attackingPlayer === player1 ? "anim-attack-right" : "anim-attack-left";
+    baseDurationMs = 500;
+  } else {
+    animClass      = attackingPlayer === player1 ? "anim-wiggle-p1" : "anim-wiggle-p2";
+    baseDurationMs = 600;
+  }
+
+  const duration = baseDurationMs / gameState.battleSpeed;
+  spriteEl.style.animationDuration = `${duration}ms`;
+
+  return new Promise(resolve => {
+    spriteEl.classList.add(animClass);
+    spriteEl.addEventListener("animationend", () => {
+      spriteEl.classList.remove(animClass);
+      spriteEl.style.animationDuration = "";
+      resolve();
+    }, { once: true });
+  });
+}
+
 async function resolveAttack(attacker, move, defender, attackingPlayer, defendingPlayer) {
   // Deduct PP (skip for Struggle)
   if (move.id !== 0) {
@@ -683,7 +1026,8 @@ async function resolveAttack(attacker, move, defender, attackingPlayer, defendin
   }
 
   appendBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}!`);
-  await pause(1800);
+  await playAttackAnimation(attackingPlayer, move);
+  await pause(1200);
 
   // Accuracy check
   if (!accuracyCheck(move)) {
@@ -762,12 +1106,10 @@ function endBattle(winner) {
 // ============================================================
 function Gen1Button() {
   generateRandomTeam(player1);
-  document.getElementById("team-preview").style.display = "flex";
 }
 
 function Gen2Button() {
   generateRandomTeam(player2);
-  document.getElementById("team-preview").style.display = "flex";
 }
 
 // ============================================================
@@ -775,9 +1117,46 @@ function Gen2Button() {
 // ============================================================
 searchForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  document.getElementById("team-preview").innerHTML = "";
+  document.getElementById("search-result").innerHTML = "";
   const input = searchText.value.trim();
   if (input.length > 0) {
     searchPokemon(input);
   }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Wire drag-and-drop drop zones for both team panels
+  [{ side: "p1", player: player1 }, { side: "p2", player: player2 }].forEach(({ side, player }) => {
+    const zoneEl = document.getElementById(`team-zone-${side}`);
+    if (!zoneEl) return;
+
+    zoneEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      zoneEl.classList.add("drag-over");
+    });
+
+    zoneEl.addEventListener("dragleave", (e) => {
+      if (!zoneEl.contains(e.relatedTarget)) {
+        zoneEl.classList.remove("drag-over");
+      }
+    });
+
+    zoneEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      zoneEl.classList.remove("drag-over");
+
+      if (dragState.type === "reorder" && dragState.player === player) {
+        // Dropped on zone background → move card to end of list
+        const moved = player.team.splice(dragState.fromIndex, 1)[0];
+        player.team.push(moved);
+        renderTeamPreview(player);
+        updateBattleReadiness();
+      } else if (dragState.type === "search") {
+        dropSearchPokemon(player);
+      }
+    });
+  });
+
+  generateRandomTeam(player1);
+  generateRandomTeam(player2);
 });

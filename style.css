@@ -160,27 +160,77 @@ button {
 
 
 /* ============================================================
-   SETUP SCREEN — team preview cards
+   SETUP SCREEN — search result + team zones
 ============================================================ */
-#team-preview {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px 10px;
+
+/* Search result drop card */
+#search-result {
+  text-align: center;
+  padding: 8px;
+  min-height: 30px;
 }
 
-.team-preview-section {
+.search-result-card {
+  display: inline-block;
+  cursor: grab;
+  border-style: dashed !important;
+}
+
+.search-result-card:active { cursor: grabbing; }
+
+.drag-hint {
+  font-family: 'VT323';
+  font-size: 14px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+/* Teams container — side by side */
+#teams-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  padding: 10px 20px 24px;
+  flex-wrap: wrap;
+}
+
+.team-zone {
+  flex: 1;
+  min-width: 280px;
+  max-width: 440px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 14px 12px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.team-zone.drag-over {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.team-zone h3 {
+  font-family: 'VT323';
+  font-size: 26px;
+  color: #fffafa;
+  margin: 0 0 10px;
   text-align: center;
 }
 
-.team-preview-section h3 {
-  font-family: 'VT323';
-  font-size: 28px;
-  color: #fffafa;
-  margin-bottom: 8px;
+.team-count {
+  font-size: 18px;
+  color: #aaa;
 }
 
+.team-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 50px;
+}
+
+/* Base card (used by search result — vertical layout) */
 .team-card {
   display: inline-block;
   vertical-align: top;
@@ -191,6 +241,44 @@ button {
   padding: 8px;
   margin: 4px;
   width: 110px;
+}
+
+/* Team slot cards — horizontal row layout */
+.team-zone .team-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  margin: 0;
+  padding: 6px 10px;
+  cursor: grab;
+  text-align: left;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.team-zone .team-card:active { cursor: grabbing; }
+
+.team-zone .team-card.dragging {
+  opacity: 0.4;
+}
+
+.team-zone .team-card.drag-over-card {
+  border-color: #fffafa;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.slot-number {
+  font-family: 'VT323';
+  font-size: 22px;
+  color: #aaa;
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .card-name {
@@ -207,7 +295,25 @@ button {
 }
 
 .card-types {
-  margin: 4px 0;
+  margin: 2px 0;
+}
+
+.remove-btn {
+  font-family: 'VT323';
+  font-size: 16px;
+  background: rgba(192, 48, 40, 0.65);
+  border: 1px solid #c03028;
+  color: #fffafa;
+  border-radius: 5px;
+  padding: 1px 7px;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.remove-btn:hover {
+  background: #c03028;
 }
 
 .loading-message {
@@ -291,6 +397,22 @@ button {
   min-width: 220px;
 }
 
+/* Player / CPU identifier above the Pokemon name */
+.player-label {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f8d030;
+  display: inline-block;
+  margin-bottom: 3px;
+}
+
 .status-name-row {
   display: flex;
   align-items: baseline;
@@ -331,16 +453,19 @@ button {
   color: #ddd;
 }
 
-/* Team icons (6 small sprites) */
+/* Team icons (6 sprites — front_default at small size) */
 .team-icons {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   align-items: center;
+  flex-wrap: wrap;
+  max-width: 276px; /* 6 × 44px + 5 × 2px gaps */
 }
 
 .team-icon {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
   image-rendering: pixelated;
 }
 
@@ -353,7 +478,7 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 230px;
+  height: clamp(180px, 30vw, 320px);
   padding: 0 40px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 8px;
@@ -362,9 +487,57 @@ button {
 
 .enemy-sprite-box img,
 .player-sprite-box img {
-  width: 180px;
+  /* Scales from 140px on narrow screens up to 260px on wide ones */
+  width: clamp(140px, 22vw, 260px);
+  height: auto;
   image-rendering: pixelated;
 }
+
+/* Flip the player (left) sprite so it faces the opponent */
+#p1-sprite {
+  transform: scaleX(-1);
+}
+
+/* ============================================================
+   BATTLE ANIMATIONS
+============================================================ */
+
+/* Player 1 lunges right (maintains horizontal flip) */
+@keyframes attack-right {
+  0%   { transform: scaleX(-1) translateX(0); }
+  40%  { transform: scaleX(-1) translateX(-45px); }
+  100% { transform: scaleX(-1) translateX(0); }
+}
+
+/* Player 2 lunges left */
+@keyframes attack-left {
+  0%   { transform: translateX(0); }
+  40%  { transform: translateX(-45px); }
+  100% { transform: translateX(0); }
+}
+
+/* Status move wiggle — P1 (maintains flip) */
+@keyframes wiggle-p1 {
+  0%, 100% { transform: scaleX(-1) translateX(0); }
+  20%      { transform: scaleX(-1) translateX(-8px); }
+  40%      { transform: scaleX(-1) translateX(8px); }
+  60%      { transform: scaleX(-1) translateX(-8px); }
+  80%      { transform: scaleX(-1) translateX(8px); }
+}
+
+/* Status move wiggle — P2 */
+@keyframes wiggle-p2 {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-8px); }
+  40%      { transform: translateX(8px); }
+  60%      { transform: translateX(-8px); }
+  80%      { transform: translateX(8px); }
+}
+
+.anim-attack-right { animation: attack-right 0.5s ease-in-out; }
+.anim-attack-left  { animation: attack-left  0.5s ease-in-out; }
+.anim-wiggle-p1    { animation: wiggle-p1    0.6s ease-in-out; }
+.anim-wiggle-p2    { animation: wiggle-p2    0.6s ease-in-out; }
 
 /* ============================================================
    BATTLE SCREEN — message box + controls row
@@ -390,11 +563,117 @@ button {
   margin: 0;
 }
 
-#battle-controls {
+/* Battle menu: 2x2 grid to the right of the message box */
+#battle-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.menu-btn {
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  padding: 0;
+  border-radius: 8px;
+  border: 3px solid #555;
+  cursor: pointer;
+  background: #1a1a2e;
+  color: #fffafa;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.menu-btn:hover:not(:disabled) {
+  background: #2e2e4e;
+  border-color: #aaa;
+}
+
+.menu-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Sub-panel sits below the controls row */
+#battle-sub-panel {
+  margin: 4px 0;
+}
+
+/* POKEMON panel */
+#pokemon-panel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+#party-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.party-slot-btn {
+  font-family: 'VT323', monospace;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a2e;
+  border: 2px solid #555;
+  border-radius: 8px;
+  color: #fffafa;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.party-slot-btn:hover:not(:disabled) {
+  background: #2e2e4e;
+  border-color: #fffafa;
+}
+
+.party-slot-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.party-slot-btn.is-active { border-color: #f8d030; }
+.party-slot-btn.is-ko     { border-color: #c03028; }
+
+.party-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.party-name {
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.party-hp { font-size: 14px; color: #ccc; }
+
+.party-badge {
+  font-size: 13px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.active-badge { background: #f8d030; color: #333; }
+.ko-badge     { background: #c03028; color: #fffafa; }
+
+/* SPEED panel */
+#speed-panel {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
 }
 
 #speed-controls {
@@ -433,22 +712,17 @@ button {
   background: #2e2e50;
 }
 
+/* EXIT button — color overrides on top of .menu-btn base */
 #btn-exit-battle {
-  font-family: 'VT323', monospace;
-  font-size: 20px;
-  padding: 6px 14px;
-  border-radius: 7px;
-  border: 2px solid #c03028;
+  border-color: #c03028;
   background: #2a0000;
   color: #f08080;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
 }
 
-#btn-exit-battle:hover {
+#btn-exit-battle:hover:not(:disabled) {
   background: #c03028;
   color: #fffafa;
+  border-color: #c03028;
 }
 
 /* ============================================================
@@ -550,47 +824,219 @@ button {
 }
 
 /* ============================================================
-   IPad Media
+   Tablet Media (≤768px)
 ============================================================ */
-@media only screen and (max-width: 768px){
+@media only screen and (max-width: 768px) {
   h1 {
-    font-size: 50px;
+    font-size: 70px;
   }
   .container {
-   font-size: 15px;
+    font-size: 15px;
   }
   button {
-    margin: 15px;
+    margin: 10px;
   }
   input[type=text] {
     padding: 7px;
-  
   }
-  #submit{
+  #submit  { font-size: 22px; }
+  .kanto   { font-size: 22px; }
+  .johto   { font-size: 22px; }
+  .hoenn   { font-size: 22px; }
+  .sinnoh  { font-size: 22px; }
+  .unova   { font-size: 22px; }
+  .kalos   { font-size: 22px; }
+  .alola   { font-size: 22px; }
+  .galar   { font-size: 22px; }
+
+  /* Battle screen — scale down for tablets */
+  #battle-screen {
+    margin: 8px;
+    padding: 8px 10px;
+  }
+
+  .battle-arena {
+    padding: 0 20px;
+  }
+
+  /* Let HP bar fill its container instead of a fixed 220px */
+  .hp-bar-container {
+    width: 100%;
+  }
+
+  /* Remove the fixed min-width so status boxes shrink naturally */
+  .pokemon-status-box {
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* Shrink the battle menu a bit */
+  #battle-menu {
+    width: 190px;
+  }
+}
+
+/* ============================================================
+   Phone Media (≤480px)
+============================================================ */
+@media only screen and (max-width: 480px) {
+  h1 {
+    font-size: 52px;
+  }
+
+  /* Setup screen — tighter spacing */
+  button {
+    margin: 6px;
+    padding: 8px 12px;
+  }
+
+  input[type=text] {
+    width: 130px;
+    padding: 8px;
+  }
+
+  .search-bar {
+    padding-bottom: 16px;
+  }
+
+  /* Teams stack cleanly already via flex-wrap; just reduce gaps */
+  #teams-container {
+    padding: 8px 10px 16px;
+    gap: 12px;
+  }
+
+  .team-zone {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Team card — vertical stack on phones */
+  .team-zone .team-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px 8px;
+  }
+
+  /* Hide the slot number on mobile — not needed when stacked */
+  .team-zone .team-card .slot-number {
+    display: none;
+  }
+
+  /* "Unwrap" card-info so its children become direct flex items */
+  .team-zone .team-card .card-info {
+    display: contents;
+  }
+
+  /* 1 — Name at the top */
+  .team-zone .team-card .card-name {
+    order: 1;
+    font-size: 17px;
+    word-break: break-word;
+    width: 100%;
+  }
+
+  /* 2 — Sprite in the middle */
+  .team-zone .team-card img {
+    order: 2;
+    width: 72px;
+  }
+
+  /* 3 — Type badges below the sprite */
+  .team-zone .team-card .card-types {
+    order: 3;
+    width: 100%;
+  }
+
+  /* Hide HP on mobile to keep the card compact */
+  .team-zone .team-card .card-hp {
+    display: none;
+  }
+
+  /* 4 — Remove button at the bottom */
+  .team-zone .team-card .remove-btn {
+    order: 4;
+    width: 80%;
+    text-align: center;
+    margin: 4px 0 0;
+    padding: 4px;
+  }
+
+  /* Battle screen */
+  #battle-screen {
+    margin: 4px;
+    padding: 6px 8px;
+  }
+
+  /* Stack team-icons above/below the status box in each row */
+  .battle-info-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  /* Enemy row reversal no longer needed when stacked */
+  .battle-info-enemy {
+    flex-direction: column;
+  }
+
+  .team-icons {
+    justify-content: center;
+  }
+
+  .team-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .battle-arena {
+    padding: 0 8px;
+  }
+
+  /* Stack message box above the battle menu on small phones */
+  #battle-controls-row {
+    flex-direction: column;
+  }
+
+  #battle-menu {
+    width: 100%;
+  }
+
+  .menu-btn {
     font-size: 20px;
   }
-  .kanto{
-    font-size: 20px;
+
+  .poke-name { font-size: 20px; }
+  .poke-level { font-size: 15px; }
+  .hp-text { font-size: 15px; }
+
+  /* Move buttons */
+  .move-btn {
+    font-size: 16px;
+    padding: 8px 6px;
   }
-  .johto{
-    font-size: 20px;
+
+  /* Party panel — single column on phones */
+  #party-slots {
+    grid-template-columns: 1fr;
   }
-  .hoenn{
-    font-size: 20px;
+
+  /* Battle log */
+  #battle-log-scroll {
+    max-height: 80px;
   }
-  .sinnoh{
-    font-size: 20px;
+
+  #battle-log-list {
+    font-size: 14px;
   }
-  .unova{
-    font-size: 20px;
+
+  #battle-log-list li:first-child {
+    font-size: 16px;
   }
-  .kalos{
-    font-size: 20px;
-  }
-  .alola{
-    font-size: 20px;
-  }
-  .galar{
-    font-size: 20px;
+
+  /* Play again button */
+  #btn-play-again {
+    font-size: 24px;
+    padding: 10px 24px;
   }
 }

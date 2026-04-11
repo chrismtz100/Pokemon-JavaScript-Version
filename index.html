@@ -27,15 +27,27 @@
           <input type="submit" id="submit" value="Submit" />
         </div>
 
-        <button type="button" id="btn-gen-p1"      class="kanto"  onclick="Gen1Button()">Generate P1 Team</button>
-        <button type="button" id="btn-gen-p2"      class="johto"  onclick="Gen2Button()">Generate P2 Team</button>
+        <button type="button" id="btn-gen-p1"      class="kanto"  onclick="Gen1Button()">Randomize P1 Team</button>
+        <button type="button" id="btn-gen-p2"      class="johto"  onclick="Gen2Button()">Randomize P2 Team</button>
         <button type="button" id="btn-mode-toggle" class="sinnoh" onclick="toggleMode()">Mode: 1 Player (vs CPU)</button>
         <button type="button" id="btn-battle"      class="hoenn"  onclick="startBattle()" disabled>Battle!</button>
       </form>
     </div>
 
-    <!-- Team preview cards appear here after generation -->
-    <div id="team-preview" class="container"></div>
+    <!-- Search result appears here — drag it onto a team -->
+    <div id="search-result"></div>
+
+    <!-- Both teams always visible side by side -->
+    <div id="teams-container">
+      <div id="team-zone-p1" class="team-zone">
+        <h3>Player 1's Team <span class="team-count" id="count-p1">(0/6)</span></h3>
+        <div class="team-slots" id="team-slots-p1"></div>
+      </div>
+      <div id="team-zone-p2" class="team-zone">
+        <h3>Player 2's Team <span class="team-count" id="count-p2">(0/6)</span></h3>
+        <div class="team-slots" id="team-slots-p2"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ======================================================
@@ -43,10 +55,21 @@
   ====================================================== -->
   <div id="battle-screen" style="display:none;">
 
-    <!-- Enemy (Player 2) status row -->
-    <div class="battle-info-row battle-info-enemy">
-      <div class="team-icons" id="p2-team-icons"></div>
+    <!-- Player 1 status row (top-left) — P2 health bar now occupies top-right -->
+    <div class="battle-info-row battle-info-player">
       <div class="pokemon-status-box">
+        <span class="player-label" id="p1-label">PLAYER 1</span>
+        <div class="status-name-row">
+          <span class="poke-name" id="p1-name">PLAYER</span>
+          <span class="poke-level">Lv50</span>
+        </div>
+        <div class="hp-bar-container">
+          <div class="hp-bar hp-green" id="p1-hp-bar" style="width:100%;"></div>
+        </div>
+        <span class="hp-text" id="p1-hp-text">---/---</span>
+      </div>
+      <div class="pokemon-status-box">
+        <span class="player-label" id="p2-label">PLAYER 2</span>
         <div class="status-name-row">
           <span class="poke-name" id="p2-name">ENEMY</span>
           <span class="poke-level">Lv50</span>
@@ -58,54 +81,62 @@
       </div>
     </div>
 
-    <!-- Battle arena: enemy sprite left, player sprite right -->
+    <!-- Battle arena: Player 1 sprite left, Player 2 sprite right -->
     <div class="battle-arena">
-      <div class="enemy-sprite-box">
-        <img id="p2-sprite" src="" alt="Enemy Pokemon" />
-      </div>
       <div class="player-sprite-box">
         <img id="p1-sprite" src="" alt="Your Pokemon" />
       </div>
+      <div class="enemy-sprite-box">
+        <img id="p2-sprite" src="" alt="Enemy Pokemon" />
+      </div>
     </div>
 
-    <!-- Player (Player 1) status row -->
-    <div class="battle-info-row battle-info-player">
-      <div class="pokemon-status-box">
-        <div class="status-name-row">
-          <span class="poke-name" id="p1-name">PLAYER</span>
-          <span class="poke-level">Lv50</span>
-        </div>
-        <div class="hp-bar-container">
-          <div class="hp-bar hp-green" id="p1-hp-bar" style="width:100%;"></div>
-        </div>
-        <span class="hp-text" id="p1-hp-text">---/---</span>
-      </div>
+    <!-- Team icons row (bottom) — P2 team icons left, P1 team icons right -->
+    <div class="battle-info-row battle-info-enemy">
+      <div class="team-icons" id="p2-team-icons"></div>
       <div class="team-icons" id="p1-team-icons"></div>
     </div>
 
-    <!-- Battle controls row: message box + speed + exit -->
+    <!-- Battle controls row: message box + 2x2 action menu -->
     <div id="battle-controls-row">
       <div id="battle-message-box">
         <p id="battle-log-text">...</p>
       </div>
-      <div id="battle-controls">
+      <div id="battle-menu">
+        <button class="menu-btn" id="btn-fight"        onclick="openFightMenu()">FIGHT</button>
+        <button class="menu-btn" id="btn-pokemon"      onclick="openPokemonMenu()">POK&eacute;MON</button>
+        <button class="menu-btn" id="btn-speed"        onclick="openSpeedMenu()">SPEED</button>
+        <button class="menu-btn" id="btn-exit-battle"  onclick="exitBattle()">EXIT</button>
+      </div>
+    </div>
+
+    <!-- Sub-panel: context-sensitive area below the menu -->
+    <div id="battle-sub-panel">
+
+      <!-- FIGHT: move buttons (2x2) -->
+      <div id="move-panel" style="display:none;">
+        <button class="move-btn" id="move-0" onclick="playerSelectMove(0)">---</button>
+        <button class="move-btn" id="move-1" onclick="playerSelectMove(1)">---</button>
+        <button class="move-btn" id="move-2" onclick="playerSelectMove(2)">---</button>
+        <button class="move-btn" id="move-3" onclick="playerSelectMove(3)">---</button>
+      </div>
+
+      <!-- POKEMON: party switcher -->
+      <div id="pokemon-panel" style="display:none;">
+        <div id="party-slots"></div>
+      </div>
+
+      <!-- SPEED: battle speed selector -->
+      <div id="speed-panel" style="display:none;">
         <div id="speed-controls">
-          <span class="speed-label">Speed</span>
+          <span class="speed-label">Speed:</span>
           <button class="speed-btn" data-speed="0.5" onclick="setBattleSpeed(0.5)">0.5x</button>
           <button class="speed-btn active" data-speed="1.0" onclick="setBattleSpeed(1.0)">1.0x</button>
           <button class="speed-btn" data-speed="2.0" onclick="setBattleSpeed(2.0)">2.0x</button>
           <button class="speed-btn" data-speed="3.0" onclick="setBattleSpeed(3.0)">3.0x</button>
         </div>
-        <button id="btn-exit-battle" onclick="exitBattle()">&#x2715; Exit</button>
       </div>
-    </div>
 
-    <!-- Move selection: 4 buttons in 2x2 grid -->
-    <div id="move-panel">
-      <button class="move-btn" id="move-0" onclick="playerSelectMove(0)">---</button>
-      <button class="move-btn" id="move-1" onclick="playerSelectMove(1)">---</button>
-      <button class="move-btn" id="move-2" onclick="playerSelectMove(2)">---</button>
-      <button class="move-btn" id="move-3" onclick="playerSelectMove(3)">---</button>
     </div>
 
     <!-- Scrollable battle history -->

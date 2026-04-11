@@ -12,7 +12,8 @@ const gameState = {
   mode: "1player",           // "1player" | "2player"
   phase: "teamSelect",       // "teamSelect" | "battle" | "gameOver"
   selectedMove: { p1: null, p2: null },
-  isAnimating: false
+  isAnimating: false,
+  battleSpeed: 1.0           // pause divisor: 1.0x = normal, 2.0x = twice as fast
 };
 
 // ============================================================
@@ -410,12 +411,30 @@ function startBattle() {
   showBattlePrompt();
 }
 
+// Exit mid-battle back to main menu (keeps generated teams intact)
+function exitBattle() {
+  gameState.isAnimating = false;
+  gameState.phase = "teamSelect";
+  gameState.selectedMove = { p1: null, p2: null };
+  document.getElementById("battle-screen").style.display = "none";
+  document.getElementById("setup-screen").style.display  = "block";
+  document.getElementById("btn-play-again").style.display = "none";
+  document.getElementById("battle-log-list").innerHTML    = "";
+  document.getElementById("battle-log-text").textContent  = "";
+  // Reset each Pokemon's currentHp and isKO so the battle can be replayed
+  for (const poke of player1.team) { poke.currentHp = poke.stats.hp; poke.isKO = false; poke.moves.forEach(m => m.currentPp = m.pp); }
+  for (const poke of player2.team) { poke.currentHp = poke.stats.hp; poke.isKO = false; poke.moves.forEach(m => m.currentPp = m.pp); }
+  player1.activeIndex = 0; player1.faintedCount = 0;
+  player2.activeIndex = 0; player2.faintedCount = 0;
+}
+
 function resetGame() {
   player1.team         = []; player1.activeIndex = 0; player1.faintedCount = 0;
   player2.team         = []; player2.activeIndex = 0; player2.faintedCount = 0;
   gameState.phase      = "teamSelect";
   gameState.isAnimating = false;
   gameState.selectedMove = { p1: null, p2: null };
+  gameState.battleSpeed = 1.0;
 
   document.getElementById("battle-screen").style.display = "none";
   document.getElementById("setup-screen").style.display  = "block";
@@ -589,8 +608,18 @@ function playerSelectMove(moveIndex) {
 // ============================================================
 // BATTLE ENGINE — TURN EXECUTION
 // ============================================================
+// Pause duration is divided by battleSpeed so higher speed = shorter waits.
+// All base values are calibrated at 1.0x speed.
 function pause(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms / gameState.battleSpeed));
+}
+
+function setBattleSpeed(speed) {
+  gameState.battleSpeed = speed;
+  // Update speed button active states
+  document.querySelectorAll(".speed-btn").forEach(btn => {
+    btn.classList.toggle("active", parseFloat(btn.dataset.speed) === speed);
+  });
 }
 
 async function executeTurn(p1Move, p2Move) {
@@ -654,19 +683,19 @@ async function resolveAttack(attacker, move, defender, attackingPlayer, defendin
   }
 
   appendBattleLog(`${attacker.name.toUpperCase()} used ${move.name.toUpperCase()}!`);
-  await pause(900);
+  await pause(1800);
 
   // Accuracy check
   if (!accuracyCheck(move)) {
     appendBattleLog(`${attacker.name.toUpperCase()}'s attack missed!`);
-    await pause(700);
+    await pause(1400);
     return;
   }
 
   // Status moves — log placeholder, no damage
   if (move.category === "status" || move.power === 0) {
     appendBattleLog(`(${move.name.toUpperCase()} — status effect not yet implemented.)`);
-    await pause(700);
+    await pause(1400);
     return;
   }
 
@@ -674,33 +703,33 @@ async function resolveAttack(attacker, move, defender, attackingPlayer, defendin
 
   if (typeMultiplier === 0) {
     appendBattleLog(`It doesn't affect ${defender.name.toUpperCase()}...`);
-    await pause(800);
+    await pause(1600);
     return;
   }
 
   if (isCritical) {
     appendBattleLog("A critical hit!");
-    await pause(500);
+    await pause(1000);
   }
 
   if (typeMultiplier >= 2) {
     appendBattleLog("It's super effective!");
-    await pause(500);
+    await pause(1000);
   } else if (typeMultiplier > 0 && typeMultiplier < 1) {
     appendBattleLog("It's not very effective...");
-    await pause(500);
+    await pause(1000);
   }
 
   defender.currentHp = Math.max(0, defender.currentHp - damage);
   updateHpBar(defendingPlayer);
   appendBattleLog(`${defender.name.toUpperCase()} took ${damage} damage! (${defender.currentHp}/${defender.stats.hp} HP)`);
-  await pause(700);
+  await pause(1400);
 
   if (defender.currentHp <= 0) {
     defender.isKO = true;
     renderTeamIcons(defendingPlayer);
     appendBattleLog(`${defender.name.toUpperCase()} fainted!`);
-    await pause(900);
+    await pause(1800);
   }
 }
 
@@ -714,7 +743,7 @@ async function handleFaintedPokemon(player) {
   player.activeIndex = nextIndex;
   const nextPoke = player.team[nextIndex];
   appendBattleLog(`${player.name} sent out ${nextPoke.name.toUpperCase()}!`);
-  await pause(700);
+  await pause(1400);
 
   updateActivePokemonSprite(player);
   updateHpBar(player);

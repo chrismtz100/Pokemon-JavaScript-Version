@@ -40,8 +40,7 @@ class Pokemon {
   constructor() {
     this.id         = 0;
     this.name       = "";
-    this.sprite     = "";       // front-facing sprite URL
-    this.backSprite = "";       // back-facing sprite URL
+    this.sprite     = "";       // front_default sprite URL
     this.types      = [];       // e.g. ["fire"] or ["fire", "flying"]
     this.level      = 50;       // all Pokemon fight at level 50
     this.currentHp  = 0;        // HP remaining during battle
@@ -165,7 +164,7 @@ async function generateRandomTeam(player) {
 
   const fetchPromises = [];
   for (let i = 0; i < 6; i++) {
-    const randomId = Math.floor(Math.random() * 898) + 1;
+    const randomId = Math.floor(Math.random() * 1025) + 1;
     fetchPromises.push(fetchSinglePokemon(randomId, player));
   }
 
@@ -181,16 +180,16 @@ async function generateRandomTeam(player) {
 }
 
 async function fetchSinglePokemon(pokemonId, player) {
-  const url = `https://pokeapi.co/api/v2/pokemon/${pokemonId}`;
+  const url = `https://pokeapi.co/api/v2/pokemon/${pokemonId}/`;
   try {
     const res = await axios.get(url);
     await addPokemonToTeam(res.data, player);
   } catch (err) {
     console.error(`Failed to fetch Pokemon #${pokemonId}:`, err);
     // Retry once with a different random ID
-    const retryId = Math.floor(Math.random() * 898) + 1;
+    const retryId = Math.floor(Math.random() * 1025) + 1;
     try {
-      const retryRes = await axios.get(`https://pokeapi.co/api/v2/pokemon/${retryId}`);
+      const retryRes = await axios.get(`https://pokeapi.co/api/v2/pokemon/${retryId}/`);
       await addPokemonToTeam(retryRes.data, player);
     } catch (retryErr) {
       console.error(`Retry fetch also failed for Pokemon slot:`, retryErr);
@@ -203,8 +202,7 @@ async function addPokemonToTeam(pokemonData, player) {
 
   newPokemon.id         = pokemonData.id;
   newPokemon.name       = pokemonData.name;
-  newPokemon.sprite     = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonData.id}.png`;
-  newPokemon.backSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${pokemonData.id}.png`;
+  newPokemon.sprite     = pokemonData.sprites.front_default;
   newPokemon.types      = pokemonData.types.map(t => t.type.name);
 
   const s = pokemonData.stats;
@@ -324,7 +322,7 @@ async function searchPokemon(searchQuery) {
 
 // Fetches and displays a single Pokemon by ID (for search results)
 async function fetchSinglePokemonForDisplay(pokemonId) {
-  const url = `https://pokeapi.co/api/v2/pokemon/${pokemonId}`;
+  const url = `https://pokeapi.co/api/v2/pokemon/${pokemonId}/`;
   try {
     const res = await axios.get(url);
     showSearchResult(res.data);
@@ -456,7 +454,7 @@ function updateActivePokemonSprite(player) {
   if (player === player1) {
     const spriteEl = document.getElementById("p1-sprite");
     const nameEl   = document.getElementById("p1-name");
-    if (spriteEl) spriteEl.src = activePoke.backSprite;
+    if (spriteEl) spriteEl.src = activePoke.sprite;
     if (nameEl)   nameEl.textContent = activePoke.name.toUpperCase();
   } else {
     const spriteEl = document.getElementById("p2-sprite");
